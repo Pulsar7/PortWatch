@@ -2,15 +2,23 @@
 
 ## Description
 
-A simple port-scanner that's scanning for unusual open-ports on certain services and sends out an alert to a given NTFY-instance.
+A lightweight port scanner that monitors hosts for unexpected port states and sends alerts to a configured NTFY instance.
 
-- Define hosts in the config-file (**hosts.json**) that need to be scanned.
-  - Add list of ports that should be open.
+- Hosts and their expected open ports are defined in the configuration file (`hosts.json`).
+- For each host, the scanner verifies:
+  - Whether all expected ports are actually open.
+  - Whether any additional, unexpected ports are open.
 
 ### Alerts
 
-An alert is sent out when ports are open, that are not defined in the config-file or when ports that should be open are closed.
+An alert is triggered if:
+- A port is found open that is **not listed** in the configuration.
+- A port that is **expected to be open** is found closed or filtered.
 
+### Dependencies
+
+This script requires the **Python module** `python-nmap` to perform port scans via the `nmap` CLI tool.  
+Make sure `nmap` is installed and available on your system.
 
 ## Usage
 
