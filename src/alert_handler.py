@@ -61,7 +61,9 @@ class NTFYAlertHandler(AlertHandler):
         return self._ignore_unsafe_ssl
     
     def test_ntfy(self) -> bool:
-        """Test given NTFY configuration."""
+        """
+        Test given NTFY configuration by sending a HTTP-GET request.
+        """
         self.logger.debug("Testing NTFY configuration")
         
         if self._ignore_unsafe_ssl:

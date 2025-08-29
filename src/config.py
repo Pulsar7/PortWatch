@@ -32,6 +32,18 @@ IGNORE_UNSAFE_SSL:bool = utils.get_bool_str(string=os.getenv('IGNORE_UNSAFE_SSL'
 
 LOG_LEVEL:str = os.getenv('LOG_LEVEL', 'DEBUG')
 
+try:
+    port_scanner_max_workers_:int = int(os.getenv('PORT_SCANNER_MAX_WORKERS', 10))
+except (ValueError, TypeError) as _e:
+    raise InvalidConfiguration(f"Given port-scanner-max-workers value is not a valid INTEGER! '{_e}'")
+PORT_SCANNER_MAX_WORKERS:int = port_scanner_max_workers_
+
+try:
+    port_scanner_timeout_sec_:int = int(os.getenv('PORT_SCANNER_TIMEOUT_SEC', 10))
+except (ValueError, TypeError) as _e:
+    raise InvalidConfiguration(f"Given port-scanner timeout value is not a valid INTEGER! '{_e}'")
+PORT_SCANNER_TIMEOUT_SEC:int = port_scanner_timeout_sec_
+
 # Functions
 
 def configure_logger() -> None:

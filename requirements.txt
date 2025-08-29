@@ -1,2 +1,3 @@
 python-dotenv==1.0.0    # to load `.env` file
 requests==2.31.0        # to send a HTTP-Post request to the given NTFY instance
+python-nmap==0.7.1      # to perform port-scans

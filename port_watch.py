@@ -17,6 +17,7 @@ import traceback
 #
 import src.utils as utils
 import src.hosts as hosts
+from src.port_scanner import PortScanner
 from src.alert_handler import NTFYAlertHandler
 import src.custom_exceptions as custom_exceptions
 
@@ -39,6 +40,28 @@ def main() -> None:
         logger.exception("Couldn't get hosts")
         logger.critical("Cannot proceed without the hosts configurations!")
         sys.exit(1)
+
+    if not utils.check_nmap_in_path():
+        logger.critical("It looks like `nmap` is not installed at the PATH. Cannot operate without `nmap`")
+        sys.exit(1)
+    
+    # Start port-scan
+    port_scanner = PortScanner(hosts=hosts_data)
+    port_scanner.start_scan()
+    
+    # Send out alerts (if any)
+    if port_scanner.alert_queue.empty():
+        logger.info("Nothing to report. Alert queue is empty.")
+        sys.exit(0)
+    
+    alert_msg:str = ""
+    
+    while not port_scanner.alert_queue.empty():
+        alert_msg += port_scanner.alert_queue.get()+"\n"
+    
+    if not alert_handler.send_out_alert(title="Port-Scan Report", text=alert_msg,
+                                priority="urgent", tags="warning"):
+        logger.critical("Couldn't send out alert!")
    
     logger.info(f"Closed. (Runtime={time.time()-_start})")
 

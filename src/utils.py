@@ -1,3 +1,4 @@
+import shutil
 import logging
 from pathlib import Path
 
@@ -40,3 +41,8 @@ def get_bool_str(string:str|None, default:bool=False) -> bool:
     
     return default
     
+def check_nmap_in_path() -> bool:
+    """
+    Check if `nmap` is installed in PATH.
+    """
+    return shutil.which("nmap") is not None
