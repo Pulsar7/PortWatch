@@ -50,11 +50,11 @@ class PortScanner:
                     if state == "open" and port not in required_open_ports:
                         alert_msg = f"Unexpected open port {port} on {host} ({host_data['name']})"
                         self.alert_queue.put(alert_msg)
-                        self.logger.debug(f"Alert queued: {alert_msg}")
+                        self.logger.debug(f"Alert queued '{alert_msg}'")
                     elif state != "open" and port in required_open_ports:
                         alert_msg = f"Unexpected closed port {port} on {host} ({host_data['name']}). Expected an open port."
                         self.alert_queue.put(alert_msg)
-                        self.logger.debug(f"Alert queued: {alert_msg}")
+                        self.logger.debug(f"Alert queued '{alert_msg}'")
                 except KeyError:
                     pass # port not reported by nmap
         except nmap.PortScannerError:
