@@ -47,16 +47,19 @@ class PortScanner:
             for port in ports_to_scan:
                 try:
                     state = scan_result["scan"][host]["tcp"][port]["state"]
+
                     if state == "open" and port not in required_open_ports:
                         alert_msg = f"Unexpected open port {port} on {host} ({host_data['name']})"
                         self.alert_queue.put(alert_msg)
                         self.logger.debug(f"Alert queued '{alert_msg}'")
-                    elif state != "open" and port in required_open_ports:
+                        
+                except KeyError:
+                    # port not reported by nmap
+                    if port in required_open_ports:
                         alert_msg = f"Unexpected closed port {port} on {host} ({host_data['name']}). Expected an open port."
                         self.alert_queue.put(alert_msg)
                         self.logger.debug(f"Alert queued '{alert_msg}'")
-                except KeyError:
-                    pass # port not reported by nmap
+            
         except nmap.PortScannerError:
             self.logger.exception(f"A port-scanning-error occured while scanning '{host}'")
         except Exception:
@@ -78,11 +81,11 @@ class PortScanner:
                 for host_key, host_data in self._hosts.items()
             ]
 
-            # Optional: handle exceptions in worker threads
+            # Handle exceptions in worker threads
             for future in futures:
                 try:
                     future.result()  # raises exception if worker failed
                 except Exception:
                     self.logger.exception("Scanning task failed")
         
-        self.logger.info(f"Stopped scan (Runtime={time.time()-_start} seconds).")
+        self.logger.info(f"Stopped all scans (Runtime={time.time()-_start} seconds).")
