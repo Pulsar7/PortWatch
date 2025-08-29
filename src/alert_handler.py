@@ -4,7 +4,8 @@ import requests
 from src.config import (NTFY_INSTANCE_TOPIC_URL,
                         NTFY_INSTANCE_AUTH_TOKEN,
                         NTFY_ALERT_INSTANCE_NAME,
-                        REQUESTS_TIMEOUT_SEC)
+                        REQUESTS_TIMEOUT_SEC,
+                        IGNORE_UNSAFE_SSL)
 
 class AlertHandler:
     """
@@ -25,6 +26,7 @@ class NTFYAlertHandler(AlertHandler):
         self._ntfy_instance_auth_token:str = NTFY_INSTANCE_AUTH_TOKEN
         self._ntfy_alert_instance_name:str = NTFY_ALERT_INSTANCE_NAME
         self._requests_timeout:int         = REQUESTS_TIMEOUT_SEC
+        self._ignore_unsafe_ssl:bool       = IGNORE_UNSAFE_SSL
         #
         self.logger = logging.getLogger(__class__.__name__)
     
@@ -53,14 +55,23 @@ class NTFYAlertHandler(AlertHandler):
         """Build NTFY HTTP-headers."""
         return {'Authorization': f"Bearer {self._ntfy_instance_auth_token}"}
     
+    @property
+    def ignore_unsafe_ssl(self) -> bool:
+        """If SSL-certificate-verification gets ignored by requests or not."""
+        return self._ignore_unsafe_ssl
+    
     def test_ntfy(self) -> bool:
         """Test given NTFY configuration."""
         self.logger.debug("Testing NTFY configuration")
         
+        if self._ignore_unsafe_ssl:
+            self.logger.warning("Accepting unsafe SSL-certificates!")
+        
         try:
             response = requests.get(url=self._ntfy_instance_topic_url,
                                     headers=self.ntfy_headers,
-                                    timeout=self._requests_timeout)
+                                    timeout=self._requests_timeout,
+                                    verify=not self._ignore_unsafe_ssl)
         except requests.exceptions.RequestException:
             self.logger.exception(f"Failed to connect to NTFY topic '{self._ntfy_instance_topic_url}'")
             return False
@@ -75,6 +86,9 @@ class NTFYAlertHandler(AlertHandler):
     def send_out_alert(self, title:str, text:str, priority:str, tags:str) -> bool:
         """Send alert via HTTP-Post request to the given NTFY-instance."""
         
+        if self._ignore_unsafe_ssl:
+            self.logger.warning("Accepting unsafe SSL-certificates!")
+        
         headers:dict = self.ntfy_headers
         headers['Title'] = title
         headers['Priority'] = priority
@@ -84,7 +98,8 @@ class NTFYAlertHandler(AlertHandler):
             response = requests.post(url=self._ntfy_instance_topic_url,
                                     headers=headers,
                                     timeout=self._requests_timeout,
-                                    data=text)
+                                    data=text,
+                                    verify=self._ignore_unsafe_ssl)
         except requests.exceptions.RequestException:
             self.logger.exception(f"Failed to connect to NTFY topic '{self._ntfy_instance_topic_url}'")
             return False

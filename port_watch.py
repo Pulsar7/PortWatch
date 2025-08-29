@@ -16,6 +16,7 @@ import logging
 import traceback
 #
 import src.utils as utils
+import src.hosts as hosts
 from src.alert_handler import NTFYAlertHandler
 import src.custom_exceptions as custom_exceptions
 
@@ -32,7 +33,12 @@ def main() -> None:
         logger.critical("Cannot proceed without an alert manager!")
         sys.exit(1)
     
-    
+    try:
+        hosts_data:dict = hosts.get_hosts_config()
+    except custom_exceptions.InvalidHostsConfigFile:
+        logger.exception("Couldn't get hosts")
+        logger.critical("Cannot proceed without the hosts configurations!")
+        sys.exit(1)
    
     logger.info(f"Closed. (Runtime={time.time()-_start})")
 

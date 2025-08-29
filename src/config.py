@@ -28,11 +28,9 @@ if not NTFY_INSTANCE_AUTH_TOKEN:
 
 NTFY_ALERT_INSTANCE_NAME:str = os.getenv('NTFY_ALERT_INSTANCE_NAME', 'PortWatcher<TestEnv>')
 
+IGNORE_UNSAFE_SSL:bool = utils.get_bool_str(string=os.getenv('IGNORE_UNSAFE_SSL'), default=False)
+
 LOG_LEVEL:str = os.getenv('LOG_LEVEL', 'DEBUG')
-if not isinstance(logging.getLevelName(LOG_LEVEL), int):
-    # Invalid level -> fallback to DEBUG
-    print(f"Invalid log level '{LOG_LEVEL}', falling back to DEBUG")
-    LOG_LEVEL = "DEBUG"
 
 # Functions
 
