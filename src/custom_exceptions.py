@@ -11,5 +11,9 @@ class InvalidConfiguration(ConfigError):
     pass
 
 class InvalidHostsConfigFile(Exception):
-    """Raise when the hosts-data couldn't be read from the JSON-file."""
+    """Raise when the hosts-data couldn't be read or invalid JSON-Syntax is being used."""
+    pass
+
+class MissingHostsConfigurationKey(InvalidHostsConfigFile):
+    """Raise when a JSON-configuration-key is missing."""
     pass
