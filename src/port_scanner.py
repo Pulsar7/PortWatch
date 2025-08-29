@@ -15,7 +15,7 @@ class PortScanner:
         self._hosts:dict = hosts
         self._max_workers:int = PORT_SCANNER_MAX_WORKERS
         self._timeout:int = PORT_SCANNER_TIMEOUT_SEC
-        self.logger = logging.getLogger(f"{__file__}.{__class__.__name__}")
+        self.logger = logging.getLogger(__class__.__name__)
         self.alert_queue = queue.Queue()
         self._threads:list = []
         
@@ -26,15 +26,15 @@ class PortScanner:
         """
         open_ports:list[int] = host_data['open-ports']
         host:str = host_data['host']
-        self.logger.debug(f"Starting scan of host '{host_key}'({host}). Open ports: {open_ports}")
+        self.logger.debug(f"Starting scan of host '{host_key}' ({host}). Open ports: {open_ports}")
         
         nm = nmap.PortScanner()
-        required_open_ports:set[int] = set(host_data["open_ports"])
+        required_open_ports:set[int] = set(host_data["open-ports"])
         all_ports:set[int] = set(range(1, 65536))
+        ports_str:str = "1-65535"
         ports_to_scan:list[int] = sorted(all_ports)
         
         # Scan unknown ports
-        ports_str = ",".join(str(p) for p in ports_to_scan)
         self.logger.debug(f"Scanning for {len(ports_to_scan)} ports at '{host}'")
         
         try:
@@ -43,6 +43,7 @@ class PortScanner:
                 ports=ports_str,
                 arguments=f"-sT -Pn -T4 --host-timeout {self._timeout}s"
             )
+            self.logger.debug("Executed command '%s'", scan_result["nmap"]["command_line"])
             for port in ports_to_scan:
                 try:
                     state = scan_result["scan"][host]["tcp"][port]["state"]
@@ -62,7 +63,6 @@ class PortScanner:
             self.logger.exception(f"An unexpected error occured while scanning '{host}'")
         
         self.logger.debug(f"Scanned all ports at '{host}'")
-        
         
     def start_scan(self) -> None:
         """

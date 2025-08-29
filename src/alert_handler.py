@@ -101,7 +101,7 @@ class NTFYAlertHandler(AlertHandler):
                                     headers=headers,
                                     timeout=self._requests_timeout,
                                     data=text,
-                                    verify=self._ignore_unsafe_ssl)
+                                    verify=not self._ignore_unsafe_ssl)
         except requests.exceptions.RequestException:
             self.logger.exception(f"Failed to connect to NTFY topic '{self._ntfy_instance_topic_url}'")
             return False
