@@ -1,0 +1,56 @@
+import os, sys
+import logging
+from dotenv import load_dotenv
+#
+import src.utils as utils
+from src.custom_exceptions import *
+
+load_dotenv(dotenv_path=utils.get_absolute_dotenv_filepath(), override=True)
+
+# Load variables
+HOSTS_CONFIG_FILEPATH:str|None = os.getenv('HOSTS_CONFIG_FILEPATH', None)
+if not HOSTS_CONFIG_FILEPATH:
+    raise MissingConfiguration("Missing hosts-config-filepath!")
+
+try:
+    requests_timeout_sec_:int = int(os.getenv('REQUESTS_TIMEOUT_SEC', 10))
+except (ValueError, TypeError) as _e:
+    raise InvalidConfiguration(f"Given requests-timeout value is not a valid INTEGER! '{_e}'")
+REQUESTS_TIMEOUT_SEC:int = requests_timeout_sec_
+
+NTFY_INSTANCE_TOPIC_URL:str|None = os.getenv('NTFY_INSTANCE_TOPIC_URL', None)
+if not NTFY_INSTANCE_TOPIC_URL:
+    raise MissingConfiguration("Missing NTFY topic URL!")
+
+NTFY_INSTANCE_AUTH_TOKEN:str|None = os.getenv('NTFY_INSTANCE_AUTH_TOKEN', None)
+if not NTFY_INSTANCE_AUTH_TOKEN:
+    raise MissingConfiguration("Missing NTFY topic authentication token!")
+
+NTFY_ALERT_INSTANCE_NAME:str = os.getenv('NTFY_ALERT_INSTANCE_NAME', 'PortWatcher<TestEnv>')
+
+LOG_LEVEL:str = os.getenv('LOG_LEVEL', 'DEBUG')
+if not isinstance(logging.getLevelName(LOG_LEVEL), int):
+    # Invalid level -> fallback to DEBUG
+    print(f"Invalid log level '{LOG_LEVEL}', falling back to DEBUG")
+    LOG_LEVEL = "DEBUG"
+
+# Functions
+
+def configure_logger() -> None:
+    """
+    Simple configuration of the `logging`-module for this project.
+    """
+    # Prevent adding multiple handlers if this function is called multiple times
+    if logging.getLogger().handlers:
+        return
+    
+    handlers:list[logging.StreamHandler] = [logging.StreamHandler(sys.stdout)]  # stdout
+
+    #
+    # ToDo: Validate `LOG_LEVEL` beforehand or raise an exception.
+    #
+    logging.basicConfig(
+        level=LOG_LEVEL.upper(),
+        format="(%(asctime)s) [%(levelname)s] %(name)s: %(message)s",
+        handlers=handlers
+    )
