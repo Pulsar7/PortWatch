@@ -29,7 +29,10 @@ git clone https://github.com/Pulsar7/PortWatch.git
 cd PortWatch
 python3 -m venv .venv && source .venv/bin/activate
 pip3 install -r requirements.txt
+cp .sample.env .env
 ```
+
+After copying the environment file, open `.env` and adjust the variables according to your setup (e.g., NTFY instance URL, hosts configuration, etc.).
 
 ### Implementation as systemd-timed-service
 
