@@ -7,6 +7,9 @@ from src.custom_exceptions import *
 
 load_dotenv(dotenv_path=utils.get_absolute_dotenv_filepath(), override=True)
 
+# Static variables
+MIN_PORT_SCANNER_TIMEOUT_SEC:int = 5
+
 # Load variables
 HOSTS_CONFIG_FILEPATH:str|None = os.getenv('HOSTS_CONFIG_FILEPATH', None)
 if not HOSTS_CONFIG_FILEPATH:
@@ -42,6 +45,8 @@ try:
     port_scanner_timeout_sec_:int = int(os.getenv('PORT_SCANNER_TIMEOUT_SEC', 10))
 except (ValueError, TypeError) as _e:
     raise InvalidConfiguration(f"Given port-scanner timeout value is not a valid INTEGER! '{_e}'")
+if port_scanner_timeout_sec_ < MIN_PORT_SCANNER_TIMEOUT_SEC:
+    raise InvalidConfiguration(f"Given port-scanner timeout value is smaller than the allowed minimum of {MIN_PORT_SCANNER_TIMEOUT_SEC} seconds!")
 PORT_SCANNER_TIMEOUT_SEC:int = port_scanner_timeout_sec_
 
 # Functions

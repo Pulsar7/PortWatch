@@ -17,3 +17,7 @@ class InvalidHostsConfigFile(Exception):
 class MissingHostsConfigurationKey(InvalidHostsConfigFile):
     """Raise when a JSON-configuration-key is missing."""
     pass
+
+class MissingNmapScanReport(Exception):
+    """Raise when nmap doesn't return any scan-reports."""
+    pass

@@ -4,12 +4,13 @@ import queue
 import logging
 from concurrent.futures import ThreadPoolExecutor
 #
+from src.custom_exceptions import MissingNmapScanReport
 from src.config import (PORT_SCANNER_MAX_WORKERS, PORT_SCANNER_TIMEOUT_SEC)
 
 class PortScanner:
     """
     Handles the port-scanning.
-    TCP & UDP.
+    TCP
     """
     def __init__(self, hosts:dict) -> None:
         self._hosts:dict = hosts
@@ -34,7 +35,6 @@ class PortScanner:
         ports_str:str = "1-65535"
         ports_to_scan:list[int] = sorted(all_ports)
         
-        # Scan unknown ports
         self.logger.debug(f"Scanning for {len(ports_to_scan)} ports at '{host}'")
         
         try:
@@ -44,6 +44,16 @@ class PortScanner:
                 arguments=f"-sT -Pn -T4 --host-timeout {self._timeout}s"
             )
             self.logger.debug("Executed command '%s'", scan_result["nmap"]["command_line"])
+            
+            # Check if any TCP scan-results are in the dictionary
+            #
+            # This can happen, when the `--host-timeout` is to low 
+            # or the given host is not reachable at all.
+            #
+            if not scan_result["scan"].get(host, None):
+                # No nmap-scan-report available!
+                raise MissingNmapScanReport(f"nmap didn't return any scan-results for host!")
+            
             for port in ports_to_scan:
                 try:
                     state = scan_result["scan"][host]["tcp"][port]["state"]
@@ -62,6 +72,8 @@ class PortScanner:
             
         except nmap.PortScannerError:
             self.logger.exception(f"A port-scanning-error occured while scanning '{host}'")
+        except MissingNmapScanReport:
+            self.logger.exception(f"Missing nmap-scan-report for host '{host}'")
         except Exception:
             self.logger.exception(f"An unexpected error occured while scanning '{host}'")
         
