@@ -5,7 +5,9 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 #
 from src.custom_exceptions import MissingNmapScanReport
-from src.config import (PORT_SCANNER_MAX_WORKERS, PORT_SCANNER_TIMEOUT_SEC)
+from src.config import (PORT_SCANNER_MAX_WORKERS, PORT_SCANNER_TIMEOUT_SEC,
+                        PORT_SCANNER_NMAP_TIMING_TEMPLATE,
+                        AVAILABLE_NMAP_TIMING_TEMPLATES)
 
 class PortScanner:
     """
@@ -14,8 +16,9 @@ class PortScanner:
     """
     def __init__(self, hosts:dict) -> None:
         self._hosts:dict = hosts
-        self._max_workers:int = PORT_SCANNER_MAX_WORKERS
-        self._timeout:int = PORT_SCANNER_TIMEOUT_SEC
+        self._max_workers:int                       = PORT_SCANNER_MAX_WORKERS
+        self._timeout:int                           = PORT_SCANNER_TIMEOUT_SEC
+        self._port_scanner_nmap_timing_template:str = PORT_SCANNER_NMAP_TIMING_TEMPLATE
         self.logger = logging.getLogger(__class__.__name__)
         self.alert_queue = queue.Queue()
         self._threads:list = []
@@ -41,7 +44,7 @@ class PortScanner:
             scan_result = nm.scan(
                 hosts=host,
                 ports=ports_str,
-                arguments=f"-sT -Pn -T4 --host-timeout {self._timeout}s"
+                arguments=f"-sT -Pn -{self._port_scanner_nmap_timing_template} --host-timeout {self._timeout}s"
             )
             self.logger.debug("Executed command '%s'", scan_result["nmap"]["command_line"])
             
@@ -84,7 +87,10 @@ class PortScanner:
         Scan all hosts.
         """
         _start:float = time.time()
-        self.logger.debug(f"Starting scan of {len(self._hosts.keys())} hosts")
+        self.logger.debug(f"Starting scan of {len(self._hosts.keys())} hosts.")
+        
+        if self._port_scanner_nmap_timing_template == AVAILABLE_NMAP_TIMING_TEMPLATES[0]:
+            self.logger.warning("Using a very cautious but slow nmap-timing-template!")
         
         with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
             # Submit tasks for all hosts
