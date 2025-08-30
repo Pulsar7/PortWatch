@@ -10,7 +10,7 @@ load_dotenv(dotenv_path=utils.get_absolute_dotenv_filepath(), override=True)
 # Static variables
 MIN_PORT_SCANNER_TIMEOUT_SEC:int = 5
 AVAILABLE_NMAP_TIMING_TEMPLATES:list[str] = [f"T{i}" for i in range(0,6)]
-DEFAULT_NMAP_TIMING_TEMPLATE:str = AVAILABLE_NMAP_TIMING_TEMPLATES[4]
+DEFAULT_NMAP_TIMING_TEMPLATE:str = AVAILABLE_NMAP_TIMING_TEMPLATES[3]
 
 # Load variables
 HOSTS_CONFIG_FILEPATH:str|None = os.getenv('HOSTS_CONFIG_FILEPATH', None)
