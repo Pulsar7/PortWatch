@@ -50,7 +50,7 @@ class PortScanner:
             
             # Check if any TCP scan-results are in the dictionary
             #
-            # This can happen, when the `--host-timeout` is to low 
+            # This can happen, when the `--host-timeout` is too low 
             # or the given host is not reachable at all.
             #
             if not scan_result["scan"].get(host, None):
