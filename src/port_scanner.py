@@ -12,7 +12,7 @@ from src.config import (PORT_SCANNER_MAX_WORKERS, PORT_SCANNER_TIMEOUT_SEC,
 class PortScanner:
     """
     Handles the port-scanning.
-    TCP
+    TCP `Connect()` (TCP Connect Scan)
     """
     def __init__(self, hosts:dict) -> None:
         self._hosts:dict = hosts
