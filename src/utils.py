@@ -1,6 +1,8 @@
+import pytz
 import shutil
 import logging
 from pathlib import Path
+from datetime import datetime
 import xml.etree.ElementTree as ET
 #
 from src.scan_constants import PortState, PortScanData, ScanResult
@@ -102,8 +104,6 @@ def parse_nmap_xml(xml_data:str) -> ScanResult:
             if not state_str:
                 logger.warning(f"[host={host_addr}] No state found for port '{portid}'")
                 state:PortState = PortState.UNKNOWN
-                print(ET.tostring(state_elem, encoding="unicode"))
-                print(ET.tostring(port, encoding="unicode"))
             else:
                 try:
                     state:PortState = PortState(state_str)
@@ -127,3 +127,18 @@ def parse_nmap_xml(xml_data:str) -> ScanResult:
         raise NmapScanReportXMLParsingError("Unexpected error occured") from _e
     
     return ScanResult(host=host_addr, ports=ports_data)
+
+def get_current_timestamp(timezone:str="UTC") -> str:
+    """
+    Get current timestamp in ISO8601 format.
+    
+    If an invalid timezone is given, the fallback timezone `UTC` is being used.
+    """
+    try:
+        timestamp:str = datetime.now(pytz.timezone(timezone)).isoformat()
+    except pytz.UnknownTimeZoneError:
+        logger.exception(f"Given timezone '{timezone}' is invalid!")
+        logger.warning("Using fallback timezone UTC")
+        timestamp:str = datetime.now(pytz.timezone("UTC")).isoformat()
+    
+    return timestamp
