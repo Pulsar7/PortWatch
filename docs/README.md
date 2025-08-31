@@ -16,9 +16,8 @@ An alert is triggered if:
 - A port that is **expected to be open** is found closed or filtered.
 
 ### Dependencies
-
-This script requires the **Python module** `python-nmap` to perform port scans via the `nmap` CLI tool.  
-Make sure `nmap` is installed and available on your system.
+ 
+Make sure `nmap` (https://nmap.org/) is installed and available on your system.
 
 ## Usage
 
