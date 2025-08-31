@@ -5,7 +5,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 #
 from src.custom_exceptions import NmapScanError, MissingNmapScanReport
-from src.scan_modes import PortScanMode
+from src.scan_modes import PortScanMode, ScanModeEnum
 from src.config import (PORT_SCANNER_MAX_WORKERS, PORT_SCANNER_TIMEOUT_SEC,
                         PORT_SCANNER_NMAP_TIMING_TEMPLATE,
                         AVAILABLE_NMAP_TIMING_TEMPLATES,
@@ -117,6 +117,12 @@ class PortScanner:
                 scan_results.append(scan_result)
         
         else:
+            if self._port_scan_mode.name == ScanModeEnum.TOP_100:
+                ports_str:str = ",".join(map(str, ports_to_scan))
+                
+            elif self._port_scan_mode.name == ScanModeEnum.ALL:
+                # ALL (using `range` for nmap)
+                ports_str:str = f"1-{self._port_scan_mode.ports_amount}"
             try:
                 scan_result = self.get_scan_results(host=host, ports_str=ports_str)
             except NmapScanError as _e:
