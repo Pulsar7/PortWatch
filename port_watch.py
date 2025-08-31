@@ -19,7 +19,6 @@ import src.utils as utils
 import src.hosts as hosts
 from src.port_scanner import PortScanner
 from src.alert_handler import NTFYAlertHandler
-from src.config import NTFY_ALERT_INSTANCE_NAME
 import src.custom_exceptions as custom_exceptions
 
 def main() -> None:
@@ -60,7 +59,7 @@ def main() -> None:
     while not port_scanner.alert_queue.empty():
         alert_msg += port_scanner.alert_queue.get()+"\n"
     
-    alert_msg += f"\n<{NTFY_ALERT_INSTANCE_NAME}/{utils.get_current_timestamp()}>"
+    alert_msg += f"\n<{config.NTFY_ALERT_INSTANCE_NAME}/{utils.get_current_timestamp()}>"
     
     if not alert_handler.send_out_alert(title="Port-Scan Report", text=alert_msg,
                                 priority="urgent", tags="warning"):
