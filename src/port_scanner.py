@@ -141,7 +141,10 @@ class PortScanner:
             scan_results.append(scan_result)
         
         # Add alerts to queue (if any unexpected port-state has been found)
+        
+        # Perhaps not the most efficient solution for avoiding duplicate alerts.
         reported_ports:list[int] = []
+        
         for scan_result in scan_results:
             for port in ports_to_scan:
                 try:
