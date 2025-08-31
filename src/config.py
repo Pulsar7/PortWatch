@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 #
 import src.utils as utils
 from src.custom_exceptions import *
-from src.scan_modes import ScanModeEnum, AVAILABLE_PORT_SCAN_MODES, PortScanMode
+from src.scan_constants import ScanModeEnum, AVAILABLE_PORT_SCAN_MODES, PortScanMode
 
 load_dotenv(dotenv_path=utils.get_absolute_dotenv_filepath(), override=True)
 

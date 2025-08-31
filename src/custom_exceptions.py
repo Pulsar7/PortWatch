@@ -26,3 +26,6 @@ class MissingNmapScanReport(NmapScanError):
     """Raise when nmap doesn't return any scan-reports."""
     pass
 
+class NmapScanReportXMLParsingError(Exception):
+    """Raise when parsing the XML-output of nmap failed."""
+    pass

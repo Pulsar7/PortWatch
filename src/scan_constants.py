@@ -33,3 +33,26 @@ AVAILABLE_PORT_SCAN_MODES:dict[ScanModeEnum, PortScanMode] = {
         ports_list=range(1, 65535)
     ),
 }
+
+class PortState(str, Enum):
+    OPEN        = "open"
+    FILTERED    = "filtered"
+    CLOSED      = "closed"
+    UNKNOWN     = "unknown"
+
+@dataclass(frozen=True)
+class PortScanData:
+    """
+    Scanned data from a specific port.
+    """
+    service_name: str
+    state: PortState
+    port: int
+
+@dataclass(frozen=True)
+class ScanResult:
+    """
+    List of all scanned ports.
+    """
+    host: str
+    ports: list[PortScanData]

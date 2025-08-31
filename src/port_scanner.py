@@ -1,16 +1,19 @@
 import time
-import nmap
 import queue
 import logging
+import subprocess
 from concurrent.futures import ThreadPoolExecutor
 #
-from src.custom_exceptions import NmapScanError, MissingNmapScanReport
-from src.scan_modes import PortScanMode, ScanModeEnum
+from src.custom_exceptions import (NmapScanError, MissingNmapScanReport,
+                                   NmapScanReportXMLParsingError)
+from src.scan_constants import (PortScanMode, ScanModeEnum,
+                                PortState, PortScanData, ScanResult)
 from src.config import (PORT_SCANNER_MAX_WORKERS, PORT_SCANNER_TIMEOUT_SEC,
                         PORT_SCANNER_NMAP_TIMING_TEMPLATE,
                         AVAILABLE_NMAP_TIMING_TEMPLATES,
                         PORT_SCAN_CHUNK_THRESHOLD,
                         PORT_SCAN_MODE)
+from src.utils import parse_nmap_xml
 
 class PortScanner:
     """
@@ -27,35 +30,85 @@ class PortScanner:
         self.alert_queue = queue.Queue()
         self._threads:list = []
     
-    def get_scan_results(self, host:str, ports_str:str):
+    def run_nmap(self, host:str, ports:str, arguments:str) -> bytes:
+        """
+        Run nmap CLI tool via subprocess.
+        
+        Raises:
+            NmapScanError: If anything went wrong while scanning
+        
+        Returns:
+            bytes: STDOUT of nmap-scan.
+        """
+        #
+        # Parameters `-oX` and `-` to get XML output from nmap
+        #
+        command:list[str] = ["nmap", "-oX", "-", "-p", ports]
+        # Add scanning-parameters (e.g. scan-mode, timing-template, etc.)
+        command.extend(arguments.strip().split())
+        # Add host
+        command.extend([host])
+        
+        try:
+            # TODO: Add timeout?
+            result = subprocess.run(
+                command, 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE,
+                check=False
+            )
+            stdout, stderr = result.stdout, result.stderr
+            
+            if stderr:
+                self.logger.warning(f"[host={host}] Nmap stderr: {stderr.decode('utf-8')}")
+        
+        except subprocess.SubprocessError as _e:
+            raise NmapScanError("SubprocessError occured") from _e
+        
+        except subprocess.TimeoutExpired as _e:
+            raise NmapScanError("Timeout expired while waiting for a child process.") from _e
+        
+        except Exception as _e:
+            raise NmapScanError("Unexpected error occured while executing nmap-scan-command") from _e
+        
+        return stdout
+    
+    def get_scan_results(self, host:str, ports_str:str) -> ScanResult:
         """
         Get scan results from nmap.
         
         Raises:
             NmapScanError: When an error occured while port-scanning.
+            NmapScanReportXMLParsingError: When parsing the stdout of nmap couldn't be parsed.
+            
+        Returns:
+            PortScanResult: A dataclass-object containing the scanning-results
         """
-        nm = nmap.PortScanner()
         try:
-            scan_result = nm.scan(
-                hosts=host,
+            stdout:bytes = self.run_nmap(
+                host=host,
                 ports=ports_str,
                 arguments=f"-sT -Pn -{self._port_scanner_nmap_timing_template} --host-timeout {self._timeout}s"
             )
-            
-            #
-            # Too noisy
-            #
-            #self.logger.debug("Executed command '%s'", scan_result["nmap"]["command_line"])
-        
-        except nmap.PortScannerError as _e:
+        except NmapScanError as _e:
             raise NmapScanError("A port-scanning-error occured while scanning") from _e
         
         except Exception as _e:
             raise NmapScanError("An unexpected error occured") from _e
         
+        # Get scan-result-object
+        try:
+            stdout_str:str = stdout.decode("utf-8")
+        except UnicodeDecodeError as _e:
+            raise NmapScanReportXMLParsingError("Failed to decode nmap output") from _e
+        
+        try:
+            scan_result:ScanResult = parse_nmap_xml(xml_data=stdout_str)
+        except NmapScanReportXMLParsingError as _e:
+            raise NmapScanReportXMLParsingError("Couldn't get scan-result-object!") from _e
+        
         return scan_result
-            
-    
+              
     def scan_host(self, host_key:str, host_data:dict) -> None:
         """
         Scan all ports except for the given open-ports.
@@ -96,22 +149,8 @@ class PortScanner:
                 #self.logger.debug(f"[host={host}] [chunk-number={chunk_number}] current chunk-size (ports to scan)={len(chunk)}")
                 
                 try:
-                    scan_result = self.get_scan_results(host=host, ports_str=ports_str)
-                    # Check if any TCP scan-results are in the dictionary
-                    #
-                    # This can happen, when the `--host-timeout` is too low 
-                    # or the given host is not reachable at all.
-                    #
-                    # !!! Current thoughts about this: When scanning the last 100 ports of ~3000 for example,
-                    # all scan-reports will be thrown away, because the exception gets raised.
-                    # ToDo: Fix that? Or shouldn't it continue when scan-reports are missing?
-                    #
-                    #
-                    if not scan_result["scan"].get(host, None):
-                        # No nmap-scan-report available!
-                        raise MissingNmapScanReport(f"nmap didn't return any scan-results for host!")
-                    
-                except NmapScanError as _e:
+                    scan_result:ScanResult = self.get_scan_results(host=host, ports_str=ports_str)
+                except (NmapScanError, NmapScanReportXMLParsingError) as _e:
                     raise MissingNmapScanReport(f"[chunk-number={chunk_number}] A nmap-scan error occured while scanning '{host}'") from _e
                 
                 scan_results.append(scan_result)
@@ -124,45 +163,56 @@ class PortScanner:
                 # ALL (using `range` for nmap)
                 ports_str:str = f"1-{self._port_scan_mode.ports_amount}"
             try:
-                scan_result = self.get_scan_results(host=host, ports_str=ports_str)
-            except NmapScanError as _e:
+                scan_result:ScanResult = self.get_scan_results(host=host, ports_str=ports_str)
+            except (NmapScanError, NmapScanReportXMLParsingError) as _e:
                 self.logger.exception(f"A nmap-scan error occured while scanning '{host}'")
                 raise MissingNmapScanReport("Scan failed. No scan-results from nmap available!") from _e
-
-            # Check if any TCP scan-results are in the dictionary
-            #
-            # This can happen, when the `--host-timeout` is too low 
-            # or the given host is not reachable at all.
-            #
-            if not scan_result["scan"].get(host, None):
-                # No nmap-scan-report available!
-                raise MissingNmapScanReport(f"nmap didn't return any scan-results for host!")
 
             scan_results.append(scan_result)
         
         # Add alerts to queue (if any unexpected port-state has been found)
         
-        # Perhaps not the most efficient solution for avoiding duplicate alerts.
-        reported_ports:list[int] = []
+        port_map:dict[int, PortScanData] = {}
         
+        # Fill port-map with ports with report
         for scan_result in scan_results:
-            for port in ports_to_scan:
-                try:
-                    state = scan_result["scan"][host]["tcp"][port]["state"]
-
-                    if state == "open" and port not in required_open_ports and port not in reported_ports:
-                        alert_msg = f"Unexpected open port {port} on {host} ({host_data['name']})"
-                        self.alert_queue.put(alert_msg)
-                        self.logger.debug(f"Alert queued '{alert_msg}'")
-                        reported_ports.append(port)
-                        
-                except KeyError:
-                    # port not reported by nmap
-                    if port in required_open_ports and port not in reported_ports:
-                        alert_msg = f"Unexpected closed port {port} on {host} ({host_data['name']}). Expected an open port."
-                        self.alert_queue.put(alert_msg)
-                        self.logger.debug(f"Alert queued '{alert_msg}'")
-                        reported_ports.append(port)
+            for _p in scan_result.ports:
+                port_map[_p.port] = _p
+        
+        missing_ports = [p for p in ports_to_scan if p not in port_map]
+        if missing_ports:
+            self.logger.debug(f"[{host}] {len(missing_ports)} ports not in Nmap XML")
+        
+        # Iterate all ports
+        for port in ports_to_scan:
+            if port not in port_map:
+                # Assuming port is closed/unknown, because nmap didn't report port
+                state = PortState.CLOSED
+                service = "unknown"
+            else:
+                state = port_map[port].state
+                service = port_map[port].service_name
+            
+            # Check if port is open
+            if state == PortState.OPEN:
+                # Found open port
+                # Check if it should be open
+                if port not in required_open_ports:
+                    # Unexpected open port found
+                    self.logger.warning(f"[{host}] Found unexpected open port {port}")
+                    self.alert_queue.put(f"Unexpected open port {port} on {host} ({host_data['name']}). service-name={service}")
+                    continue
+            
+            # Check if port is closed/filtered
+            # or use just `else` ^^
+            elif state != PortState.OPEN:
+                # Found port that seems to be closed for filtered
+                # Check if it should be open
+                if port in required_open_ports:
+                    # Unexpected closed/filtered port found
+                    self.logger.warning(f"[{host}] Found unexpected closed port {port}. Expected port to be open!")
+                    self.alert_queue.put(f"Unexpected closed port {port} on {host} ({host_data['name']}). Expected port to be open. port-state={state.value}")
+                    continue
         
         self.logger.debug(f"Scanned all ports at '{host}'")
         
