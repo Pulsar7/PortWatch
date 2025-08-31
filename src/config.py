@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 #
 import src.utils as utils
 from src.custom_exceptions import *
+from src.scan_modes import ScanModeEnum, AVAILABLE_PORT_SCAN_MODES, PortScanMode
 
 load_dotenv(dotenv_path=utils.get_absolute_dotenv_filepath(), override=True)
 
@@ -11,6 +12,8 @@ load_dotenv(dotenv_path=utils.get_absolute_dotenv_filepath(), override=True)
 MIN_PORT_SCANNER_TIMEOUT_SEC:int = 5
 AVAILABLE_NMAP_TIMING_TEMPLATES:list[str] = [f"T{i}" for i in range(0,6)]
 DEFAULT_NMAP_TIMING_TEMPLATE:str = AVAILABLE_NMAP_TIMING_TEMPLATES[3]
+DEFAULT_PORT_SCAN_MODE:str = "TOP_1000"
+PORT_SCAN_CHUNK_THRESHOLD:int = 100
 
 # Load variables
 HOSTS_CONFIG_FILEPATH:str|None = os.getenv('HOSTS_CONFIG_FILEPATH', None)
@@ -51,9 +54,19 @@ if port_scanner_timeout_sec_ < MIN_PORT_SCANNER_TIMEOUT_SEC:
     raise InvalidConfiguration(f"Given port-scanner timeout value is smaller than the allowed minimum of {MIN_PORT_SCANNER_TIMEOUT_SEC} seconds!")
 PORT_SCANNER_TIMEOUT_SEC:int = port_scanner_timeout_sec_
 
-PORT_SCANNER_NMAP_TIMING_TEMPLATE:str = os.getenv('PORT_SCANNER_NMAP_TIMING_TEMPLATE', DEFAULT_NMAP_TIMING_TEMPLATE)
-if PORT_SCANNER_NMAP_TIMING_TEMPLATE.upper() not in AVAILABLE_NMAP_TIMING_TEMPLATES:
+PORT_SCANNER_NMAP_TIMING_TEMPLATE:str = os.getenv('PORT_SCANNER_NMAP_TIMING_TEMPLATE', DEFAULT_NMAP_TIMING_TEMPLATE).upper()
+if PORT_SCANNER_NMAP_TIMING_TEMPLATE not in AVAILABLE_NMAP_TIMING_TEMPLATES:
     raise InvalidConfiguration(f"Given port-scanner nmap-timing-template '{PORT_SCANNER_NMAP_TIMING_TEMPLATE}' does not exist!")
+
+scan_mode_str:str = os.getenv('PORT_SCAN_MODE', DEFAULT_PORT_SCAN_MODE)
+try:
+    PORT_SCAN_MODE:PortScanMode = AVAILABLE_PORT_SCAN_MODES[ScanModeEnum(scan_mode_str)]
+except ValueError:
+    raise InvalidConfiguration(
+        f"Invalid port scan mode '{scan_mode_str}'. "
+        f"Available: {', '.join(m.value for m in ScanModeEnum)}"
+    )
+
 
 # Functions
 
