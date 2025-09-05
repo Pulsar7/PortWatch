@@ -85,6 +85,6 @@ def configure_logger() -> None:
     #
     logging.basicConfig(
         level=LOG_LEVEL.upper(),
-        format="(%(asctime)s) [%(levelname)s] %(name)s: %(message)s",
+        format="(%(asctime)s) [%(levelname)s] [%(threadName)s] %(name)s.%(funcName)s: %(message)s",
         handlers=handlers
     )
