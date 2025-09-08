@@ -211,7 +211,7 @@ class PortScanner:
                 if port in required_open_ports:
                     # Unexpected closed/filtered port found
                     self.logger.warning(f"[{host}] Found unexpected {state.value} port {port}. Expected port to be open!")
-                    self.alert_queue.put(f"Unexpected closed port {port} on {host} ({host_data['name']}). Expected port to be open. port-state={state.value}")
+                    self.alert_queue.put(f"Unexpected {state.value} port {port} on {host} ({host_data['name']}). Expected port to be open. port-state={state.value}")
                     continue
         
         self.logger.debug(f"Scanned all ports at '{host}'")
